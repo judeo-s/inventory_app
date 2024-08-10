@@ -20,11 +20,17 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
   const [open, setOpen] = useState(false);
   const [itemName, setItemName] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(firestore, "inventory"), (snapshot) => {
@@ -79,11 +85,23 @@ export default function Home() {
     }
   }
 
+  const filterInventory = inventory.filter((item) => {
+    return item.name.toLowerCase().includes(searchText.toLowerCase());
+  });
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       <Typography variant="h4" sx={{ mb: 4 }}>Inventory Management App</Typography>
       <Box sx={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <TextField
+            id="search"
+            label="Search"
+            type="search"
+            sx={{ mr: 2 }}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
           <Button variant="contained" onClick={handleOpen}>Add Item</Button>
         </Box>
         <Dialog open={open} onClose={handleClose}>
@@ -113,13 +131,15 @@ export default function Home() {
                   <TableCell>Item Name</TableCell>
                   <TableCell align="right">Quantity</TableCell>
                   <TableCell align="right">Remove</TableCell>
+                  <TableCell align="right">Add</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {inventory.map((item) => (
+                {filterInventory.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell component="th" scope="row">{item.name}</TableCell>
                     <TableCell align="right">{item.quantity}</TableCell>
+                    <TableCell align="right"><Button variant="contained" onClick={() => {setSelectedItem(item.id); handleOpen()}}>Add</Button></TableCell>
                     <TableCell align="right"><Button variant="contained" onClick={() => removeItem(item.id)}>Remove</Button></TableCell>
                   </TableRow>
                 ))}
