@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { firestore } from "./firebase";
-import { query, doc, collection, getDocs, getDoc, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
+import { query, doc, collection, getDocs, getDoc, deleteDoc, updateDoc, setDoc, onSnapshot } from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
@@ -26,33 +26,24 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const [itemName, setItemName] = useState("");
 
-  const updateInventory = async () => {
-    const snapshot = query(collection(firestore, "inventory"));
-    const docs = await getDocs(snapshot);
-    const inventoryList = [];
-    docs.forEach((doc) => {
-      inventoryList.push({ id: doc.id, ...doc.data() });    
-    })
-    setInventory(inventoryList);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(firestore, "inventory"), (snapshot) => {
+      const inventoryList = [];
+      snapshot.forEach((doc) => {
+        inventoryList.push({ id: doc.id, ...doc.data() });
+      });
+      setInventory(inventoryList);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleOpen = () => {
+    setOpen(true);
   }
 
-  const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, "inventory"), item);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const {quantity} = docSnap.data();
-
-      if (quantity === 1) {
-        await deleteDoc(docRef);
-      } else {
-        await updateDoc(docRef, {
-          quantity: quantity - 1
-        });
-      }
-    }
+  const handleClose = () => {
+    setOpen(false);
   }
-
 
   const addItem = async (itemName) => {
     const docRef = doc(collection(firestore, "inventory"), itemName);
@@ -71,19 +62,22 @@ export default function Home() {
     }
   };
 
-  const handleOpen = () => {
-    setOpen(true);
-  }
+  const removeItem = async (item) => {
+    const docRef = doc(collection(firestore, "inventory"), item);
+    const docSnap = await getDoc(docRef);
 
-  const handleClose = () => {
-    setOpen(false);
-  }
-  
-  useEffect(() => {
-    updateInventory();
-  }, []);
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data();
 
-  console.log(inventory);
+      if (quantity === 1) {
+        await deleteDoc(docRef);
+      } else {
+        await updateDoc(docRef, {
+          quantity: quantity - 1,
+        });
+      }
+    }
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
